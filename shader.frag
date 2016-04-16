@@ -4,8 +4,8 @@ varying vec2 vTextureCoord;
 varying vec4 vColor;
 
 uniform sampler2D uSampler;
-uniform float customUniform;
 uniform vec2 uResolution;
+uniform vec2 uMouse;
 
 // Raymarching
 const float rayEpsilon = 0.0001;
@@ -58,20 +58,25 @@ vec3 rotateX(vec3 v, float t) {
 
 void main(void)
 {
-	vec3 color = vec3(sin(customUniform),0.0,0.6);
-
-	vec2 uv = vTextureCoord * 2.0 - 1.0;
+	vec3 color = skyColor;
+	vec2 mouse = uMouse / uResolution;
+	vec2 uv = vTextureCoord * vec2(uResolution.y / uResolution.x * 2.0, 2.0) - 1.0;
 	uv.x *= uResolution.x / uResolution.y;
 	vec3 ray = normalize(front + right * uv.x + up * uv.y);
-
+	float cell = 2.0;
 	float t = 0.0;
+
+	ray = rotateX(ray, mouse.y);
+	ray = rotateY(ray, -mouse.x);
+
 	for (int r = 0; r < rayCount; ++r) 
 	{
+
 		vec3 p = eye + ray * t;
+		// p = rotateX(p, mouse.y * 4.0);
+		// p = rotateY(p, -mouse.x * 4.0);
+		// p = rotateY(p, t * 0.1);
 
-		p = rotateY(p, customUniform);
-
-		float cell = 2.0;
 		p = mod(p, cell) - cell * 0.5;
 
 		float d = sphere(p, 0.5);
@@ -79,13 +84,12 @@ void main(void)
 		if (d < rayEpsilon || t > rayMax)
 		{
 			color = mix(color, vec3(0.0,0.5,1.0), (1.0 - float(r) / float(rayCount)));
-			// color = (colorNormal * 0.5 + 0.5) * (1.0 - float(r) / float(rayCount));   
 			color = mix(color, skyColor, smoothstep(rayMin, rayMax, t));
 			break;
 		}
+
 		t += d;
 	}
 
-	//mod(dist+mod(uTimeElapsed,1.0),1.0));
 	gl_FragColor = vec4(color, 1.0);
 }

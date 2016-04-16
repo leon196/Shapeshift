@@ -1,9 +1,8 @@
 
-var width, height;
-var renderer, stage, background, filter;
-var mouseData;
-var mouseDragOrigin;
+var renderer, stage, background, filter, width, height;
+var mouseData, mouseDragOrigin;
 var isDragging = false;
+var timeStart, timeElapsed;
 
 function CustomFilter(fragmentSource) { PIXI.Filter.call(this, null, fragmentSource); }
 CustomFilter.prototype = Object.create(PIXI.Filter.prototype);
@@ -21,7 +20,6 @@ window.onload = function ()
 	background.drawRect(0, 0, width, height);
 	background.endFill();
 	background.interactive = true;
-	background.buttonMode = true;
 	background.on('mousedown', onMouseDown).on('touchstart', onMouseDown);
 	background.on('mouseup', onMouseUp).on('mouseupoutside', onMouseUp).on('touchend', onMouseUp).on('touchendoutside', onMouseUp);
 	background.on('mousemove', onMouseMove).on('touchmove', onMouseMove);
@@ -36,9 +34,14 @@ function onLoaded (loader,res)
 {
 	var fragmentSrc = res.shader.data;
 	filter = new CustomFilter(fragmentSrc);
+	filter.uniforms.uTime = 0;
 	filter.uniforms.uResolution = { x: width, y: height };
 	filter.uniforms.uMouse = { x: 0, y: 0 };
+	filter.uniforms.uPanorama1 = PIXI.Texture.fromImage("PANO_20160409_121110_0.jpg");
+	filter.uniforms.uPanorama2 = PIXI.Texture.fromImage("PANO_20160409_125038_0.jpg");
+	filter.uniforms.uPanorama3 = PIXI.Texture.fromImage("RoomSpace.png");
 	background.filters = [filter];
+	timeStart = new Date() / 1000.0;
 	animate();
 }
 
@@ -69,6 +72,7 @@ function onMouseMove (e)
 
 function animate () 
 {
+	filter.uniforms.uTime = new Date() / 1000.0 - timeStart;
 	renderer.render(stage);
 	requestAnimationFrame( animate );
 }

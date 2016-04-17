@@ -4,9 +4,11 @@ varying vec2 vTextureCoord;
 varying vec4 vColor;
 
 uniform sampler2D uSampler;
+uniform sampler2D panorama;
 uniform float time;
 uniform vec2 dimension;
 uniform float resolution;
+uniform vec2 mouseDrag;
 uniform vec2 mouse;
 
 // Raymarching
@@ -23,10 +25,11 @@ vec3 right = vec3(1.0, 0.0, 0.0);
 vec3 up = vec3(0.0, 1.0, 0.0);
 
 // Colors
-vec3 sphereColor = vec3(0, 0.5, 0.0);
+vec3 sphereColor = vec3(0, 0.8, 0.5);
 vec3 skyColor = vec3(0.0, 0.0, 0.0);
 vec3 shadowColor = vec3(0.0, 0.0, 0.5);
-vec3 fogColor  = vec3(0.5,0.0,0.0);
+vec3 fogColor = vec3(0.5,0.0,0.0);
+vec3 glowColor = vec3(0.5,0.8,0.0);
 
 // 
 vec3 axisX = vec3(0.1, 0.0, 0.0);
@@ -77,7 +80,7 @@ float scene1 (vec3 p)
 	// p = rotateY(p, t * 0.1);
 	p = rotateY(p, p.y * PI);
 
-	// p = rotateY(p, mouse.x);
+	// p = rotateY(p, mouseDrag.x);
 	return box(p, vec3(0.25, 1.0, 0.25));
 	// return sphere(p, 0.8);
 }
@@ -95,14 +98,15 @@ vec3 getNormal(vec3 p, float t)
 void main(void)
 {
 	vec3 color = skyColor;
-	vec2 mouse = mouse / dimension;
+	vec2 mDrag = mouseDrag / dimension;
+	vec2 mOffset = mouse / dimension;
 	float aspectRatio = dimension.x / dimension.y;
 	vec2 uv = vTextureCoord * 2.0 - 1.0;
 	uv.x *= aspectRatio;
 	vec3 ray = normalize(front + right * uv.x + up * uv.y);
 
-	// ray = rotateX(ray, mouse.y * 4.0);
-	// ray = rotateY(ray, -mouse.x * 4.0);
+	// ray = rotateX(ray, mouseDrag.y * 4.0);
+	// ray = rotateY(ray, -mouseDrag.x * 4.0);
 
 	// float osc = sin(time) * 0.5 + 0.5;
 
@@ -110,26 +114,28 @@ void main(void)
 	for (int r = 0; r < rayCount; ++r) 
 	{
 		vec3 p = eye + ray * t;
-		float s = sphere(p - eye, 2.0);
+		float s = sphere(p - eye, 1.0);
 
-		p = rotateX(p, -mouse.y * 4.0);
-		p = rotateY(p, mouse.x * 4.0);
+		p = rotateX(p, -mDrag.y * 4.0);
+		p = rotateY(p, mDrag.x * 4.0);
 
 
 		// vec3 cell = vec3(4.0, 2.0, 4.0);
-		vec3 cell = vec3(1.5);
-		p = mix(p, mod(p, cell) - cell * 0.5, sin(time) * 0.5 + 0.5);
+		vec3 cell = vec3(1.0 + t * 0.5);
+		p = mix(p, mod(p, cell) - cell * 0.5, sin(mOffset.x * PI));//sin(time) * 0.5 + 0.5);
 		// float d = scene1(p);
 
 		// p = mod(p, cell) - cell * 0.5;
 
-		float d = sphere(p, 0.5);// + osc * 0.1);
+		float d = sphere(p, 0.5 + t * 0.1);// + osc * 0.1);
 
 		d = substraction(s, d);
+		vec3 c = texture2D(panorama, mod(abs(vec2(atan(p.y, p.x) / PI / 2.0, p.z / 2.0 + 0.5)), 1.0)).rgb;
 
 		if (d < rayEpsilon || t > rayMax)
 		{
-			color = mix(color, sphereColor, (1.0 - float(r) / float(rayCount)));
+			color = mix(color, c, (1.0 - float(r) / float(rayCount)));
+			// color = mix(color, sphereColor, (1.0 - float(r) / float(rayCount)));
 			color = mix(color, skyColor, smoothstep(rayMin, rayMax, t));
 			break;
 		}

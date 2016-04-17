@@ -100,6 +100,7 @@ void main(void)
 	vec3 color = skyColor;
 	vec2 mDrag = mouseDrag / dimension;
 	vec2 mOffset = mouse / dimension;
+	vec2 m = sin(mOffset * PI);
 	float aspectRatio = dimension.x / dimension.y;
 	vec2 uv = vTextureCoord * 2.0 - 1.0;
 	uv.x *= aspectRatio;
@@ -122,12 +123,12 @@ void main(void)
 
 		// vec3 cell = vec3(4.0, 2.0, 4.0);
 		vec3 cell = vec3(1.0 + t * 0.5);
-		p = mix(p, mod(p, cell) - cell * 0.5, sin(mOffset.x * PI));//sin(time) * 0.5 + 0.5);
+		p = mix(p, mod(p, cell) - cell * 0.5, m.x);//sin(time) * 0.5 + 0.5);
 		// float d = scene1(p);
 
 		// p = mod(p, cell) - cell * 0.5;
 
-		float d = sphere(p, 0.5 + t * 0.1);// + osc * 0.1);
+		float d = mix(sphere(p, 0.5 + t * 0.1), box(p, vec3(0.5 + t * 0.1)), m.y);
 
 		d = substraction(s, d);
 		vec3 c = texture2D(panorama, mod(abs(vec2(atan(p.y, p.x) / PI / 2.0, p.z / 2.0 + 0.5)), 1.0)).rgb;

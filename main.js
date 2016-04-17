@@ -1,28 +1,22 @@
 
 var renderer, stage, background, filter, width, height;
-var mouseDragOrigin, mouseOffset;
+var mousePos, mouseDragOrigin, mouseOffset;
 var isDragging = false;
 var timeStart, timeElapsed;
-
-function CustomFilter(fragmentSource) { 
-	PIXI.AbstractFilter.call(this, null, fragmentSource, {
-		time : { type : '1f', value : 0 },
-		resolution : { type : '1f', value : 0 },
-		dimension : { type : '2f', value : new Float32Array([0, 0]) },
-		mouseDrag : { type : '2f', value : new Float32Array([0, 0]) },
-		mouse : { type : '2f', value : new Float32Array([0, 0]) },
-		panorama : { type : 'sampler2D', value : 0}
-	});
-}
-
-CustomFilter.prototype = Object.create(PIXI.AbstractFilter.prototype);
-CustomFilter.prototype.constructor = CustomFilter;
+var text;
+var textCenter;
+var gameState = 0;
+var STATE_INTRO = 0;
+var STATE_PLAYING = 1;
+var STATE_TRANSITION = 2;
+var cooldownIntro = new Cooldown(5);
+var cooldownTransition = new Cooldown(1);
 
 window.onload = function () 
 {
 	width = window.innerWidth;
 	height = window.innerHeight;
-	renderer = PIXI.autoDetectRenderer(width, height, { resolution: 0.5 });
+	renderer = PIXI.autoDetectRenderer(width, height, { resolution: 1 });
 	document.body.appendChild(renderer.view);
 	stage = new PIXI.Container();
 	background = new PIXI.Graphics();
@@ -35,6 +29,32 @@ window.onload = function ()
 	background.on('mouseup', onMouseUp).on('mouseupoutside', onMouseUp).on('touchend', onMouseUp).on('touchendoutside', onMouseUp);
 	background.on('mousemove', onMouseMove).on('touchmove', onMouseMove);
 	stage.addChild(background);
+
+	text = new PIXI.Text('Find the initial shape by moving the mouse. Click to orbit camera.', {
+    font : '16px Arial',
+    fill : '#ffffff',
+    stroke : '#000000',
+    strokeThickness : 5,
+    wordWrap : true,
+    wordWrapWidth : width
+	});
+
+	text.anchor.y = 1.0;
+	text.x = 0;
+	text.y = height;
+	stage.addChild(text);
+
+	textCenter = new PIXI.Text('Memorize this shape',{
+    font : '26px Arial',
+    fill : '#ffffff',
+    stroke : '#000000',
+    strokeThickness : 5
+	});
+	textCenter.anchor.x = 0.5;
+	textCenter.anchor.y = 0.5;
+	textCenter.x = width / 2;
+	textCenter.y = height / 2;
+	stage.addChild(textCenter);
 
 	PIXI.loader.add('shader','shader.frag');
 	PIXI.loader.once('complete', onLoaded);
@@ -52,11 +72,20 @@ function onLoaded (loader,res)
 	filter.uniforms.mouse.value[1] = 0;
 	filter.uniforms.mouseDrag.value[0] = 0;
 	filter.uniforms.mouseDrag.value[1] = 0;
-	filter.uniforms.panorama.value = PIXI.Texture.fromImage('PANO_20160409_121110_0.jpg');
+	filter.uniforms.panorama.value = PIXI.Texture.fromImage('panorama.jpg');
 	background.filters = [filter];
+	mousePos = { x: 0, y: 0 };
 	mouseDragOrigin = { x: 0, y: 0 };
 	mouseOffset = { x: 0, y: 0 };
 	timeStart = new Date() / 1000.0;
+	timeElapsed = 0;
+
+	gameState = STATE_INTRO;
+	cooldownIntro.Start();
+	cooldownTransition.Start();
+	mouseOffset.x = Math.round(Math.random() * width);
+	mouseOffset.y = Math.round(Math.random() * height);
+
 	animate();
 }
 
@@ -73,26 +102,59 @@ function onMouseUp (e)
 
 function onMouseMove (e)
 {
-	var mousePos = e.data.getLocalPosition(this.parent);
+	mousePos = e.data.getLocalPosition(this.parent);
 	if (isDragging) {
   	filter.uniforms.mouseDrag.value[0] += mousePos.x - mouseDragOrigin.x;
   	filter.uniforms.mouseDrag.value[1] += mousePos.y - mouseDragOrigin.y;
-
-  	// filter.uniforms.mouse.value[0] = Math.abs(filter.uniforms.mouse.value[0] + mousePos.x - mouseDragOrigin.x) % width;
-  	// filter.uniforms.mouse.value[1] = Math.abs(filter.uniforms.mouse.value[1] + mousePos.y - mouseDragOrigin.y) % height;
-  	mouseOffset.x += (mousePos.x - mouseDragOrigin.x) % width;
-  	mouseOffset.y += (mousePos.y - mouseDragOrigin.y) % height;
-
+  	if (gameState == STATE_PLAYING) {
+	  	mouseOffset.x += (mousePos.x - mouseDragOrigin.x) % width;
+	  	mouseOffset.y += (mousePos.y - mouseDragOrigin.y) % height;
+	  }
   	mouseDragOrigin = mousePos;
   } else {
-  	filter.uniforms.mouse.value[0] = Math.abs(mousePos.x - mouseOffset.x) % width;
-  	filter.uniforms.mouse.value[1] = Math.abs(mousePos.y - mouseOffset.y) % height;
+  	if (gameState == STATE_PLAYING) {
+	  	filter.uniforms.mouse.value[0] = Math.abs(mousePos.x - mouseOffset.x) % width;
+	  	filter.uniforms.mouse.value[1] = Math.abs(mousePos.y - mouseOffset.y) % height;
+	  }
   }
+}
+
+function mix (a, b, t)
+{
+	return a * (1.0 - t) + b * t;
 }
 
 function animate () 
 {
-	filter.uniforms.time.value = new Date() / 1000.0 - timeStart;
+ 	timeElapsed = new Date() / 1000.0 - timeStart;
+ 	filter.uniforms.time.value = timeElapsed;
+
+	switch (gameState) 
+	{
+		case STATE_INTRO: {
+			cooldownIntro.Update();
+
+			if (cooldownIntro.IsOver()) {
+				gameState = STATE_TRANSITION;
+				cooldownTransition.Start();
+			}
+			break;
+		}
+		case STATE_TRANSITION: {
+			cooldownTransition.Update();
+
+	  	filter.uniforms.mouse.value[0] = mix(0, Math.abs(mousePos.x - mouseOffset.x) % width, cooldownTransition.ratio);
+	  	filter.uniforms.mouse.value[1] = mix(0, Math.abs(mousePos.y - mouseOffset.y) % height, cooldownTransition.ratio);
+
+	  	textCenter.alpha = 1.0 - cooldownTransition.ratio;
+
+			if (cooldownTransition.IsOver()) {
+				gameState = STATE_PLAYING;
+			}
+			break;
+		}
+	}
+
 	renderer.render(stage);
 	requestAnimationFrame( animate );
 }

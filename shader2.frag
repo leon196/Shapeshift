@@ -106,20 +106,17 @@ void main(void)
 	uv.x *= aspectRatio;
 	vec3 ray = normalize(front + right * uv.x + up * uv.y);
 
-	// ray = rotateX(ray, mouseDrag.y * 4.0);
-	// ray = rotateY(ray, -mouseDrag.x * 4.0);
+	ray = rotateX(ray, -mDrag.y * 4.0);
+	ray = rotateY(ray, mDrag.x * 4.0);
 
-	// float osc = sin(time) * 0.5 + 0.5;
+	eye = rotateX(eye, -mDrag.y * 4.0);
+	eye = rotateY(eye, mDrag.x * 4.0);
 
 	float t = 0.0;
 	for (int r = 0; r < rayCount; ++r) 
 	{
 		vec3 p = eye + ray * t;
 		float s = sphere(p - eye, 1.0);
-
-		p = rotateX(p, -mDrag.y * 4.0);
-		p = rotateY(p, mDrag.x * 4.0);
-
 
 		// vec3 cell = vec3(4.0, 2.0, 4.0);
 		vec3 cell = vec3(1.0 + t * 0.5);

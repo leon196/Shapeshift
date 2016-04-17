@@ -10,10 +10,15 @@ var STATE_INTRO = 0;
 var STATE_PLAYING = 1;
 var STATE_TRANSITION = 2;
 var STATE_WINNING = 3;
+var STATE_FINISH = 4;
 var cooldownIntro = new Cooldown(5);
 var cooldownTransition = new Cooldown(1);
 var cooldownWin = new Cooldown(3);
 var winTreshold = 10;
+var filters = [];
+var filter;
+var currentFilter = 0;
+var totalFilter = 3;
 
 window.onload = function () 
 {
@@ -33,7 +38,7 @@ window.onload = function ()
 	background.on('mousemove', onMouseMove).on('touchmove', onMouseMove);
 	stage.addChild(background);
 
-	text = new PIXI.Text('Find the initial shape by moving the mouse. Click to orbit camera.', {
+	text = new PIXI.Text('Find the initial shape by moving the mouse. Click to orbit camera.\nMade by Leon Denise for Ludum Dare #35 \'Shapeshifting\'', {
     font : '16px Arial',
     fill : '#ffffff',
     stroke : '#000000',
@@ -47,10 +52,11 @@ window.onload = function ()
 	text.y = height;
 	stage.addChild(text);
 
-	textCenter = new PIXI.Text('Memorize this shape',{
+	textCenter = new PIXI.Text('Memorize this shape\nand move your mouse to right pixel.',{
     font : '26px Arial',
     fill : '#ffffff',
     stroke : '#000000',
+    align: 'center',
     strokeThickness : 5
 	});
 	textCenter.anchor.x = 0.5;
@@ -59,23 +65,34 @@ window.onload = function ()
 	textCenter.y = height / 2;
 	stage.addChild(textCenter);
 
-	PIXI.loader.add('shader','shader.frag');
+	// for (var i = 1; i <= totalFilter; ++i) {
+		// PIXI.loader.add('shader' + i,'shader' + i + '.frag');
+		PIXI.loader.add('shader1','shader1.frag');
+		PIXI.loader.add('shader2','shader2.frag');
+	// }
 	PIXI.loader.once('complete', onLoaded);
 	PIXI.loader.load();
 }
 
 function onLoaded (loader,res) 
 {
-	var fragmentSrc = res.shader.data;
-	filter = new CustomFilter(fragmentSrc);
-	filter.uniforms.dimension.value[0] = width;
-	filter.uniforms.dimension.value[1] = height;
-	filter.uniforms.resolution.value = renderer.resolution;
-	filter.uniforms.mouse.value[0] = 0;
-	filter.uniforms.mouse.value[1] = 0;
-	filter.uniforms.mouseDrag.value[0] = 0;
-	filter.uniforms.mouseDrag.value[1] = 0;
-	filter.uniforms.panorama.value = PIXI.Texture.fromImage('panorama.jpg');
+	filters = [
+		new CustomFilter(res.shader1.data),
+		new CustomFilter(res.shader2.data)
+	];
+	for (var i = 0; i < filters.length; ++i) {
+		filters[i].uniforms.dimension.value[0] = width;
+		filters[i].uniforms.dimension.value[1] = height;
+		filters[i].uniforms.resolution.value = renderer.resolution;
+		filters[i].uniforms.mouse.value[0] = 0;
+		filters[i].uniforms.mouse.value[1] = 0;
+		filters[i].uniforms.mouseDrag.value[0] = width / 4;
+		filters[i].uniforms.mouseDrag.value[1] = height / 8;
+		filters[i].uniforms.panorama.value = PIXI.Texture.fromImage('panorama.jpg');
+	}
+
+	filter = filters[currentFilter];
+
 	background.filters = [filter];
 	mousePos = { x: 0, y: 0 };
 	mouseDragOrigin = { x: 0, y: 0 };
@@ -126,6 +143,7 @@ function clamp (x, min, max) { return Math.max(Math.min(x, max), min); }
 function animate () 
 {
  	timeElapsed = new Date() / 1000.0 - timeStart;
+
  	filter.uniforms.time.value = timeElapsed;
 
 	switch (gameState) 
@@ -175,11 +193,34 @@ function animate ()
 	  	textCenter.alpha = Math.sin(cooldownWin.ratio * Math.PI);
 
 			if (cooldownWin.IsOver()) {
-				gameState = STATE_INTRO;
-				cooldownIntro.Start();
-				textCenter.text = "Memorize this shape";
-	  		textCenter.alpha = 0.0;
+
+				currentFilter = currentFilter + 1;
+				if (currentFilter < filters.length) {
+					filter = filters[currentFilter];
+					background.filters = [filter];
+					gameState = STATE_INTRO;
+					cooldownIntro.Start();
+					textCenter.text = "Memorize this shape";
+		  		textCenter.alpha = 0.0;
+		  	} else {
+					gameState = STATE_FINISH;
+		  		cooldownTransition.Start();
+					textCenter.text = "You have finished the game, thanks for playing :D";
+		  		textCenter.alpha = 0.0;
+		  	}
 			}
+			break;
+		}
+		case STATE_FINISH: {
+
+			cooldownTransition.Update();
+
+	  	textCenter.alpha = clamp(cooldownTransition.ratio * 2, 0, 1);
+
+			if (cooldownTransition.IsOver()) {
+
+			}
+
 			break;
 		}
 	}

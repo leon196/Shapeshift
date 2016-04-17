@@ -69,20 +69,6 @@ float smin( float a, float b, float k ) {
     return mix( b, a, h ) - k*h*(1.0-h);
 }
 
-vec3 grid (vec2 uv, vec2 offset, vec2 dimension) {
-	float bright = 0.1;
-	float cellSize = 0.05;
-	vec2 unit = 2.0 / dimension;
-	uv.x *= dimension.x / dimension.y;
-	uv = sin((uv - offset) * 100.0) * 0.8;
-	uv = mod(abs(uv), 1.0);
-	// float g = step(mod(uv.x, cellSize), unit.x);
-	// g += step(mod(uv.y, cellSize), unit.y);
-	float g = 1.0 - clamp(bright / uv.x, 0.0, 1.0);
-	g += 1.0 - clamp(bright / uv.y, 0.0, 1.0);
-	return vec3(1.0 - clamp(g, 0.0, 1.0)) * 0.3;
-}
-
 void main(void)
 {
 	vec2 mDrag = mouseDrag / dimension;
@@ -99,7 +85,7 @@ void main(void)
 	eye = rotateX(eye, -mDrag.y * 4.0);
 	eye = rotateY(eye, mDrag.x * 4.0);
 
-	vec3 colorGrid = grid(vTextureCoord, mDrag, dimension);
+	vec3 colorGrid = texture2D(uSampler, vTextureCoord).rgb;
 
 	vec3 color = colorGrid;
 

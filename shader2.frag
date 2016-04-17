@@ -97,7 +97,6 @@ vec3 getNormal(vec3 p, float t)
 
 void main(void)
 {
-	vec3 color = skyColor;
 	vec2 mDrag = mouseDrag / dimension;
 	vec2 mOffset = mouse / dimension;
 	vec2 m = sin(mOffset * PI);
@@ -111,6 +110,9 @@ void main(void)
 
 	eye = rotateX(eye, -mDrag.y * 4.0);
 	eye = rotateY(eye, mDrag.x * 4.0);
+
+	vec3 colorGrid = texture2D(uSampler, vTextureCoord).rgb;
+	vec3 color = colorGrid;
 
 	float t = 0.0;
 	for (int r = 0; r < rayCount; ++r) 
@@ -134,7 +136,7 @@ void main(void)
 		{
 			color = mix(color, c, (1.0 - float(r) / float(rayCount)));
 			// color = mix(color, sphereColor, (1.0 - float(r) / float(rayCount)));
-			color = mix(color, skyColor, smoothstep(rayMin, rayMax, t));
+			color = mix(color, colorGrid, smoothstep(rayMin, rayMax, t));
 			break;
 		}
 

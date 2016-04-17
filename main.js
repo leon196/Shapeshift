@@ -17,6 +17,7 @@ var cooldownWin = new Cooldown(3);
 var winTreshold = 10;
 var filters = [];
 var filter;
+var gridFilter;
 var currentFilter = 0;
 var totalFilter = 3;
 
@@ -65,35 +66,42 @@ window.onload = function ()
 	textCenter.y = height / 2;
 	stage.addChild(textCenter);
 
-	// for (var i = 1; i <= totalFilter; ++i) {
-		// PIXI.loader.add('shader' + i,'shader' + i + '.frag');
-		PIXI.loader.add('shader1','shader1.frag');
-		PIXI.loader.add('shader2','shader2.frag');
-	// }
+	for (var i = 1; i <= totalFilter; ++i) {
+		PIXI.loader.add('shader' + i,'shader' + i + '.frag');
+	}
+	PIXI.loader.add('grid', 'grid.shader');
 	PIXI.loader.once('complete', onLoaded);
 	PIXI.loader.load();
 }
 
+function setupFilter (filter)
+{
+	filter.uniforms.dimension.value[0] = width;
+	filter.uniforms.dimension.value[1] = height;
+	filter.uniforms.resolution.value = renderer.resolution;
+	filter.uniforms.mouse.value[0] = 0;
+	filter.uniforms.mouse.value[1] = 0;
+	filter.uniforms.mouseDrag.value[0] = width / 4;
+	filter.uniforms.mouseDrag.value[1] = height / 8;
+	filter.uniforms.panorama.value = PIXI.Texture.fromImage('panorama.jpg');
+}
+
 function onLoaded (loader,res) 
 {
-	filters = [
-		new CustomFilter(res.shader1.data),
-		new CustomFilter(res.shader2.data)
-	];
-	for (var i = 0; i < filters.length; ++i) {
-		filters[i].uniforms.dimension.value[0] = width;
-		filters[i].uniforms.dimension.value[1] = height;
-		filters[i].uniforms.resolution.value = renderer.resolution;
-		filters[i].uniforms.mouse.value[0] = 0;
-		filters[i].uniforms.mouse.value[1] = 0;
-		filters[i].uniforms.mouseDrag.value[0] = width / 4;
-		filters[i].uniforms.mouseDrag.value[1] = height / 8;
-		filters[i].uniforms.panorama.value = PIXI.Texture.fromImage('panorama.jpg');
+	filters = [];
+	for (var i = 1; i <= totalFilter; ++i) {
+		filters.push(new CustomFilter(res['shader' + i].data));
 	}
+	for (var i = 0; i < filters.length; ++i) {
+		setupFilter(filters[i]);
+	}
+
+	gridFilter = new CustomFilter(res.grid.data);
+	setupFilter(gridFilter);
 
 	filter = filters[currentFilter];
 
-	background.filters = [filter];
+	background.filters = [gridFilter, filter];
 	mousePos = { x: 0, y: 0 };
 	mouseDragOrigin = { x: 0, y: 0 };
 	mouseOffset = { x: 0, y: 0 };
@@ -124,6 +132,8 @@ function onMouseMove (e)
 	if (isDragging) {
   	filter.uniforms.mouseDrag.value[0] += mousePos.x - mouseDragOrigin.x;
   	filter.uniforms.mouseDrag.value[1] += mousePos.y - mouseDragOrigin.y;
+		gridFilter.uniforms.mouseDrag.value[0] = filter.uniforms.mouseDrag.value[0];
+		gridFilter.uniforms.mouseDrag.value[1] = filter.uniforms.mouseDrag.value[1];
   	if (gameState == STATE_PLAYING) {
 	  	mouseOffset.x += (mousePos.x - mouseDragOrigin.x) % width;
 	  	mouseOffset.y += (mousePos.y - mouseDragOrigin.y) % height;
@@ -197,7 +207,7 @@ function animate ()
 				currentFilter = currentFilter + 1;
 				if (currentFilter < filters.length) {
 					filter = filters[currentFilter];
-					background.filters = [filter];
+					background.filters = [gridFilter, filter];
 					gameState = STATE_INTRO;
 					cooldownIntro.Start();
 					textCenter.text = "Memorize this shape";
@@ -205,7 +215,7 @@ function animate ()
 		  	} else {
 					gameState = STATE_FINISH;
 		  		cooldownTransition.Start();
-					textCenter.text = "You have finished the game.\nThanks for playing :D";
+					textCenter.text = 'You have finished the game.\nI\'ve started the Ludum Dare super late, so there is only ' + filters.length + ' levels :3\nThanks for playing :D';
 		  		textCenter.alpha = 0.0;
 		  	}
 			}

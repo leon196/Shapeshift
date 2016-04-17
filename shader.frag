@@ -16,7 +16,7 @@ const float rayEpsilon = 0.0001;
 const float rayMin = 0.1;
 const float rayMax = 100.0;
 const float rayStep = 2.0;
-const int rayCount = 64;
+const int rayCount = 32;
 
 // Camera
 vec3 eye = vec3(0.0, 0.0, -5.0);

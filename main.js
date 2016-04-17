@@ -9,8 +9,11 @@ var gameState = 0;
 var STATE_INTRO = 0;
 var STATE_PLAYING = 1;
 var STATE_TRANSITION = 2;
+var STATE_WINNING = 3;
 var cooldownIntro = new Cooldown(5);
 var cooldownTransition = new Cooldown(1);
+var cooldownWin = new Cooldown(3);
+var winTreshold = 10;
 
 window.onload = function () 
 {
@@ -83,8 +86,6 @@ function onLoaded (loader,res)
 	gameState = STATE_INTRO;
 	cooldownIntro.Start();
 	cooldownTransition.Start();
-	mouseOffset.x = Math.round(Math.random() * width);
-	mouseOffset.y = Math.round(Math.random() * height);
 
 	animate();
 }
@@ -119,10 +120,8 @@ function onMouseMove (e)
   }
 }
 
-function mix (a, b, t)
-{
-	return a * (1.0 - t) + b * t;
-}
+function mix (a, b, t) {	return a * (1.0 - t) + b * t; }
+function clamp (x, min, max) { return Math.max(Math.min(x, max), min); }
 
 function animate () 
 {
@@ -134,9 +133,13 @@ function animate ()
 		case STATE_INTRO: {
 			cooldownIntro.Update();
 
+	  	textCenter.alpha = clamp(cooldownIntro.ratio * 2, 0, 1);
+
 			if (cooldownIntro.IsOver()) {
 				gameState = STATE_TRANSITION;
 				cooldownTransition.Start();
+				mouseOffset.x = Math.round(Math.random() * width);
+				mouseOffset.y = Math.round(Math.random() * height);
 			}
 			break;
 		}
@@ -150,6 +153,32 @@ function animate ()
 
 			if (cooldownTransition.IsOver()) {
 				gameState = STATE_PLAYING;
+			}
+			break;
+		}
+		case STATE_PLAYING: {
+
+			if (filter.uniforms.mouse.value[0] < winTreshold && filter.uniforms.mouse.value[1] < winTreshold) {
+				gameState = STATE_WINNING;
+				cooldownWin.Start();
+				textCenter.text = "You found the right pixel :)";
+			}
+
+			break;
+		}
+		case STATE_WINNING: {
+			cooldownWin.Update();
+
+	  	filter.uniforms.mouse.value[0] = mix(filter.uniforms.mouse.value[0], 0, clamp(cooldownWin.ratio * 3, 0, 1));
+	  	filter.uniforms.mouse.value[1] = mix(filter.uniforms.mouse.value[1], 0, clamp(cooldownWin.ratio * 3, 0, 1));
+
+	  	textCenter.alpha = Math.sin(cooldownWin.ratio * Math.PI);
+
+			if (cooldownWin.IsOver()) {
+				gameState = STATE_INTRO;
+				cooldownIntro.Start();
+				textCenter.text = "Memorize this shape";
+	  		textCenter.alpha = 0.0;
 			}
 			break;
 		}

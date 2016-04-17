@@ -4,8 +4,16 @@ var mouseData, mouseDragOrigin;
 var isDragging = false;
 var timeStart, timeElapsed;
 
-function CustomFilter(fragmentSource) { PIXI.Filter.call(this, null, fragmentSource); }
-CustomFilter.prototype = Object.create(PIXI.Filter.prototype);
+function CustomFilter(fragmentSource) { 
+	PIXI.AbstractFilter.call(this, null, fragmentSource, {
+		time : { type : '1f', value : 0 },
+		resolution : { type : '1f', value : 0 },
+		dimension : { type : '2f', value : new Float32Array([0, 0]) },
+		mouse : { type : '2f', value : new Float32Array([0, 0]) }
+	});
+}
+
+CustomFilter.prototype = Object.create(PIXI.AbstractFilter.prototype);
 CustomFilter.prototype.constructor = CustomFilter;
 
 window.onload = function () 
@@ -34,12 +42,11 @@ function onLoaded (loader,res)
 {
 	var fragmentSrc = res.shader.data;
 	filter = new CustomFilter(fragmentSrc);
-	filter.uniforms.uTime = 0;
-	filter.uniforms.uResolution = { x: width, y: height };
-	filter.uniforms.uMouse = { x: 0, y: 0 };
-	filter.uniforms.uPanorama1 = PIXI.Texture.fromImage("PANO_20160409_121110_0.jpg");
-	filter.uniforms.uPanorama2 = PIXI.Texture.fromImage("PANO_20160409_125038_0.jpg");
-	filter.uniforms.uPanorama3 = PIXI.Texture.fromImage("RoomSpace.png");
+	filter.uniforms.dimension.value[0] = width;
+	filter.uniforms.dimension.value[1] = height;
+	filter.uniforms.resolution.value = renderer.resolution;
+	filter.uniforms.mouse.value[0] = 0;
+	filter.uniforms.mouse.value[1] = 0;
 	background.filters = [filter];
 	timeStart = new Date() / 1000.0;
 	animate();
@@ -62,17 +69,17 @@ function onMouseMove (e)
 {
 	if (isDragging) {
 		var mousePos = mouseData.getLocalPosition(this.parent);
-    	filter.uniforms.uMouse.x += mousePos.x - mouseDragOrigin.x;
-    	filter.uniforms.uMouse.y += mousePos.y - mouseDragOrigin.y;
+    	filter.uniforms.mouse.value[0] += mousePos.x - mouseDragOrigin.x;
+    	filter.uniforms.mouse.value[1] += mousePos.y - mouseDragOrigin.y;
     	mouseDragOrigin = mousePos;
-    	// filter.uniforms.uMouse.x = mousePos.x;
-    	// filter.uniforms.uMouse.y = mousePos.y;
+    	// filter.uniforms.mouse.value[0] = mousePos.x;
+    	// filter.uniforms.mouse.value[1] = mousePos.y;
     }
-}
+  }
 
-function animate () 
-{
-	filter.uniforms.uTime = new Date() / 1000.0 - timeStart;
+  function animate () 
+  {
+	filter.uniforms.time.value = new Date() / 1000.0 - timeStart;
 	renderer.render(stage);
 	requestAnimationFrame( animate );
 }

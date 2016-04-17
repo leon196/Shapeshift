@@ -1,10 +1,8 @@
 
 var renderer, stage, background, filter, width, height;
 var mousePos, mouseDragOrigin, mouseOffset;
+var timeStart, timeElapsed, text, textCenter;
 var isDragging = false;
-var timeStart, timeElapsed;
-var text;
-var textCenter;
 var gameState = 0;
 var STATE_INTRO = 0;
 var STATE_PLAYING = 1;
@@ -16,8 +14,7 @@ var cooldownTransition = new Cooldown(1);
 var cooldownWin = new Cooldown(3);
 var winTreshold = 10;
 var filters = [];
-var filter;
-var gridFilter;
+var filter, gridFilter;
 var currentFilter = 0;
 var totalFilter = 3;
 
@@ -83,7 +80,6 @@ function setupFilter (filter)
 	filter.uniforms.mouse.value[1] = 0;
 	filter.uniforms.mouseDrag.value[0] = width / 4;
 	filter.uniforms.mouseDrag.value[1] = height / 8;
-	filter.uniforms.panorama.value = PIXI.Texture.fromImage('panorama.jpg');
 }
 
 function onLoaded (loader,res) 
@@ -94,6 +90,7 @@ function onLoaded (loader,res)
 	}
 	for (var i = 0; i < filters.length; ++i) {
 		setupFilter(filters[i]);
+		filters[i].uniforms.panorama.value = PIXI.Texture.fromImage('panorama' + (i+1) + '.jpg');
 	}
 
 	gridFilter = new CustomFilter(res.grid.data);

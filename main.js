@@ -38,7 +38,7 @@ window.onload = function ()
 	background.on('mousemove', onMouseMove).on('touchmove', onMouseMove);
 	stage.addChild(background);
 
-	text = new PIXI.Text('Find the initial shape by moving the mouse. Click to orbit camera.\nMade by Leon Denise for Ludum Dare #35 \'Shapeshifting\'', {
+	text = new PIXI.Text('Find the initial shape by moving the mouse. Click to orbit camera.\nMade by Leon Denise with Pixi.js for Ludum Dare #35 \'Shapeshifting\'\nEffects are made with raymarching shaders', {
     font : '16px Arial',
     fill : '#ffffff',
     stroke : '#000000',
@@ -52,7 +52,7 @@ window.onload = function ()
 	text.y = height;
 	stage.addChild(text);
 
-	textCenter = new PIXI.Text('Memorize this shape\nand move your mouse to right pixel.',{
+	textCenter = new PIXI.Text('Memorize this shape\nand move your mouse to the right pixel.',{
     font : '26px Arial',
     fill : '#ffffff',
     stroke : '#000000',
@@ -205,7 +205,7 @@ function animate ()
 		  	} else {
 					gameState = STATE_FINISH;
 		  		cooldownTransition.Start();
-					textCenter.text = "You have finished the game, thanks for playing :D";
+					textCenter.text = "You have finished the game.\nThanks for playing :D";
 		  		textCenter.alpha = 0.0;
 		  	}
 			}

@@ -14,7 +14,7 @@ uniform vec2 mouse;
 // Raymarching
 const float rayEpsilon = 0.0001;
 const float rayMin = 0.1;
-const float rayMax = 100.0;
+const float rayMax = 20.0;
 const float rayStep = 2.0;
 const int rayCount = 32;
 
@@ -69,6 +69,12 @@ float smin( float a, float b, float k ) {
     return mix( b, a, h ) - k*h*(1.0-h);
 }
 
+float sdTorus( vec3 p, vec2 t )
+{
+  vec2 q = vec2(length(p.xz)-t.x,p.y);
+  return length(q)-t.y;
+}
+
 void main(void)
 {
 	vec2 mDrag = mouseDrag / dimension;
@@ -89,22 +95,43 @@ void main(void)
 
 	vec3 color = colorGrid;
 
+
 	float t = 0.0;
 	for (int r = 0; r < rayCount; ++r) 
 	{
+		// ray = rotateY(ray, t * 0.1 * m.x * m.x);
+		// ray = rotateX(ray, t * 0.1 * m.x * m.x);
+
 		vec3 p = eye + ray * t;
 		float s = sphere(p - eye, 1.0);
 
+		// p = rotateY(p, p.x * 10.0 * m.y * m.y);
+		// p.yz *= mix(1.0, clamp(1.0 - 0.05 / abs(p.x), 0.0, 1.0), m.x);
 		// p = mix(p, 1.0 / p, m.x);
-		// p = rotateX(p, p.y * 10.0);
-		// p = rotateX(p, p.y * 20.0 * m.y);
+		// p = rotateX(p, t * m.x);
+		float cell = 2.0;
+		// p = mod(p, cell) - cell * 0.5;
 
-		p.y = mix(p.y, p.y + sin(length(p.xz) * 10.0), m.y);
+		p.xz = mix(p.xz, mod(p.xz, cell) - cell * 0.5, m.x);
 
-		float h = mix(0.5, 10.0, m.x);
+		float h = mix(0.5, 4.0, m.y);
 
-		float d = box(p, vec3(h, 0.5, h));
+		float d = mix(box(p, vec3(0.5)), sphere(p, 0.5), m.y);
 
+		// float d = mix(box(p, vec3(0.5, h, 0.5)), sdTorus(p, vec2(0.5, 0.2)), m.x);
+
+		// p = rotateX(p, length(p) * m.y);
+		// p = rotateY(p, length(p) * m.y);
+
+		// float dd = addition(d, box(p, vec3(0.5, 100.0, 0.5)));
+		// dd = addition(dd, box(p, vec3(100.0, 0.5, 0.5)));
+		// dd = addition(dd, box(p, vec3(0.5, 0.5, 100.0)));
+
+
+		// float dd = smin(d, box(p, vec3(0.25, 5.0, 0.25)), 0.5);
+
+		// d = mix(d, dd, m.x);
+		// d = mix(d, ddd, m.y);
 		d = substraction(s, d);
 		vec3 c = texture2D(panorama, mod(abs(vec2(atan(p.y, p.x) / PI / 2.0, p.z / 2.0 + 0.5)), 1.0)).rgb;
 

@@ -14,7 +14,7 @@ uniform vec2 mouse;
 // Raymarching
 const float rayEpsilon = 0.0001;
 const float rayMin = 0.1;
-const float rayMax = 100.0;
+const float rayMax = 20.0;
 const float rayStep = 2.0;
 const int rayCount = 32;
 
@@ -69,72 +69,53 @@ float smin( float a, float b, float k ) {
     return mix( b, a, h ) - k*h*(1.0-h);
 }
 
-float scene (vec3 p)
-{
-	return box(p, vec3(1.0));
-}
-
-float scene1 (vec3 p)
-{
-	// p.y += time;
-	// p = rotateY(p, t * 0.1);
-	p = rotateY(p, p.y * PI);
-
-	// p = rotateY(p, mouseDrag.x);
-	return box(p, vec3(0.25, 1.0, 0.25));
-	// return sphere(p, 0.8);
-}
-
-float sdTorus( vec3 p, vec2 t )
-{
-  vec2 q = vec2(length(p.xz)-t.x,p.y);
-  return length(q)-t.y;
-}
-
-
-vec3 getNormal(vec3 p, float t)
-{
-	float h = 0.0001;
-	return normalize(vec3(
-		scene(p + vec3(h, 0, 0)) - scene(p - vec3(h, 0, 0)),
-		scene(p + vec3(0, h, 0)) - scene(p - vec3(0, h, 0)),
-		scene(p + vec3(0, 0, h)) - scene(p - vec3(0, 0, h))));
-}
-
 void main(void)
 {
 	vec2 mDrag = mouseDrag / dimension;
 	vec2 mOffset = mouse / dimension;
 	vec2 m = sin(mOffset * PI);
+
 	float aspectRatio = dimension.x / dimension.y;
 	vec2 uv = vTextureCoord * 2.0 - 1.0;
 	uv.x *= aspectRatio;
-	vec3 ray = normalize(front + right * uv.x + up * uv.y);
 
+	vec3 ray = normalize(front + right * uv.x + up * uv.y);
 	ray = rotateX(ray, -mDrag.y * 4.0);
 	ray = rotateY(ray, mDrag.x * 4.0);
-
 	eye = rotateX(eye, -mDrag.y * 4.0);
 	eye = rotateY(eye, mDrag.x * 4.0);
 
 	vec3 colorGrid = texture2D(uSampler, vTextureCoord).rgb;
+
 	vec3 color = colorGrid;
+
 
 	float t = 0.0;
 	for (int r = 0; r < rayCount; ++r) 
 	{
+		// ray = rotateY(ray, t * 0.1 * m.x * m.x);
+		// ray = rotateX(ray, t * 0.1 * m.x * m.x);
+
 		vec3 p = eye + ray * t;
 		float s = sphere(p - eye, 1.0);
 
-		// vec3 cell = vec3(4.0, 2.0, 4.0);
-		vec3 cell = vec3(1.0 + t * 0.5);
-		p = mix(p, mod(p, cell) - cell * 0.5, m.x);//sin(time) * 0.5 + 0.5);
-		// float d = scene1(p);
-
+		p = rotateY(p, p.x * 10.0 * m.y * m.y);
+		p.yz *= mix(1.0, clamp(1.0 - 0.05 / abs(p.x), 0.0, 1.0), m.x);
+		// p = mix(p, 1.0 / p, m.x);
+		// p = rotateX(p, t * m.x);
+		float cell = 2.0;
 		// p = mod(p, cell) - cell * 0.5;
 
-		float d = mix(box(p, vec3(0.5)), sdTorus(p, vec2(0.5, 0.25)), m.y);
+		// p = 
 
+		float d = box(p, vec3(0.5));
+
+
+
+		// float dd = smin(d, box(p, vec3(0.25, 5.0, 0.25)), 0.5);
+
+		// d = mix(d, dd, m.x);
+		// d = mix(d, ddd, m.y);
 		d = substraction(s, d);
 		vec3 c = texture2D(panorama, mod(abs(vec2(atan(p.y, p.x) / PI / 2.0, p.z / 2.0 + 0.5)), 1.0)).rgb;
 

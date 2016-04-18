@@ -16,7 +16,7 @@ var winTreshold = 10;
 var filters = [];
 var filter, gridFilter;
 var currentFilter = 0;
-var totalFilter = 3;
+var totalFilter = 9;
 
 window.onload = function () 
 {
@@ -90,6 +90,7 @@ function onLoaded (loader,res)
 	}
 	for (var i = 0; i < filters.length; ++i) {
 		setupFilter(filters[i]);
+		// filters[i].uniforms.panorama.value = PIXI.Texture.fromImage('panorama8.jpg');
 		filters[i].uniforms.panorama.value = PIXI.Texture.fromImage('panorama' + (i+1) + '.jpg');
 	}
 

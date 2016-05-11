@@ -22,7 +22,7 @@ window.onload = function ()
 {
 	width = window.innerWidth;
 	height = window.innerHeight;
-	renderer = PIXI.autoDetectRenderer(width, height, { resolution: 1 });
+	renderer = PIXI.autoDetectRenderer(width, height, { resolution: 0.5 });
 	document.body.appendChild(renderer.view);
 	stage = new PIXI.Container();
 	background = new PIXI.Graphics();
@@ -78,8 +78,8 @@ function setupFilter (filter)
 	filter.uniforms.resolution.value = renderer.resolution;
 	filter.uniforms.mouse.value[0] = 0;
 	filter.uniforms.mouse.value[1] = 0;
-	filter.uniforms.mouseDrag.value[0] = width / 4;
-	filter.uniforms.mouseDrag.value[1] = height / 8;
+	filter.uniforms.mouseDrag.value[0] = 0;//width / 4;
+	filter.uniforms.mouseDrag.value[1] = 0;//height / 8;
 }
 
 function onLoaded (loader,res) 
